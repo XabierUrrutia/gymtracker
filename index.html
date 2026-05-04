@@ -15,10 +15,27 @@
     <title>GymTracker</title>
 </head>
 <body>
+    <!-- Pantalla de login (código de usuario) -->
+    <div id="view-login" class="view active login-view">
+        <div class="login-content">
+            <div class="login-icon">💪</div>
+            <h1 class="login-title">GymTracker</h1>
+            <p class="login-subtitle">Mete tu código personal</p>
+            <input type="text" id="user-code-input" class="login-input" placeholder="ej. mi-codigo-2026" autocapitalize="none" autocorrect="off">
+            <button id="btn-login" class="btn btn-primary login-btn">Continuar</button>
+            <p class="login-help">
+                Si es la primera vez, inventa un código que recuerdes.<br>
+                Si ya lo tienes, mete el mismo en otros dispositivos para ver tus datos.
+            </p>
+            <div id="login-error" class="login-error hidden"></div>
+        </div>
+    </div>
+    
     <!-- Vista Calendario -->
-    <div id="view-calendar" class="view active">
+    <div id="view-calendar" class="view">
         <header class="header">
             <h1>Mis entrenamientos</h1>
+            <span id="sync-indicator" class="sync-indicator"></span>
         </header>
         
         <div class="month-nav">
@@ -88,8 +105,16 @@
         </div>
         
         <div class="card">
-            <h3>Datos</h3>
-            <p class="info-text">Tus datos se guardan en este iPhone. Exporta de vez en cuando para tener un backup.</p>
+            <h3>Sincronización</h3>
+            <p class="info-text">Tu código de usuario: <strong id="current-user-code"></strong></p>
+            <p class="info-text" id="sync-status-text">Comprobando...</p>
+            <button id="btn-force-sync" class="btn-secondary">Sincronizar ahora</button>
+            <button id="btn-logout" class="btn-secondary" style="color: #FF3B30;">Cerrar sesión</button>
+        </div>
+        
+        <div class="card">
+            <h3>Backup local</h3>
+            <p class="info-text">Aunque ya sincronizas con la nube, puedes exportar un backup adicional.</p>
             <button id="btn-export" class="btn-secondary">Exportar datos</button>
             <button id="btn-import" class="btn-secondary">Importar datos</button>
             <input type="file" id="import-file" accept=".json" style="display:none;">
@@ -97,7 +122,7 @@
     </div>
     
     <!-- Tab Bar -->
-    <nav class="tab-bar">
+    <nav id="tab-bar" class="tab-bar hidden">
         <button class="tab-btn active" data-view="view-calendar">
             <span class="tab-icon">📅</span>
             <span class="tab-label">Calendario</span>
@@ -159,6 +184,7 @@
         </div>
     </div>
     
+    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

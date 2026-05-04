@@ -2,12 +2,13 @@
 // - Permite que la app funcione offline
 // - Gestiona las notificaciones programadas
 
-const CACHE_NAME = 'gymtracker-v1';
+const CACHE_NAME = 'gymtracker-v2';
 const FILES = [
     '/',
     '/index.html',
     '/styles.css',
     '/app.js',
+    '/config.js',
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png'
