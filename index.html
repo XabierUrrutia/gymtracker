@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GymTracker">
+    <meta name="theme-color" content="#FF6B35">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+    
+    <title>GymTracker</title>
+</head>
+<body>
+    <!-- Vista Calendario -->
+    <div id="view-calendar" class="view active">
+        <header class="header">
+            <h1>Mis entrenamientos</h1>
+        </header>
+        
+        <div class="month-nav">
+            <button id="btn-prev-month" class="icon-btn" aria-label="Mes anterior">‹</button>
+            <h2 id="month-title">Mes</h2>
+            <button id="btn-next-month" class="icon-btn" aria-label="Mes siguiente">›</button>
+        </div>
+        
+        <div class="weekdays">
+            <span>L</span><span>M</span><span>X</span><span>J</span>
+            <span>V</span><span>S</span><span>D</span>
+        </div>
+        
+        <div id="days-grid" class="days-grid"></div>
+        
+        <div id="day-detail" class="day-detail hidden">
+            <h3 id="day-detail-title"></h3>
+            <div id="day-actions" class="day-actions"></div>
+            <div id="day-content"></div>
+        </div>
+    </div>
+    
+    <!-- Vista Estadísticas -->
+    <div id="view-stats" class="view">
+        <header class="header">
+            <h1>Estadísticas</h1>
+        </header>
+        
+        <div class="card streak-card">
+            <div class="streak-row">
+                <span class="streak-icon">🔥</span>
+                <span id="streak-number" class="streak-number">0</span>
+                <span class="streak-label">días</span>
+            </div>
+            <p id="streak-text" class="streak-text">¡Empieza tu racha hoy!</p>
+        </div>
+        
+        <div class="card">
+            <h3>Este mes</h3>
+            <div class="stats-row">
+                <div class="stat-block">
+                    <div class="stat-icon" style="color: #34C759;">✓</div>
+                    <div id="month-workouts" class="stat-value">0</div>
+                    <div class="stat-label">entrenamientos</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-icon" style="color: #007AFF;">📅</div>
+                    <div id="month-days" class="stat-value">0</div>
+                    <div class="stat-label">días activos</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-icon" style="color: #AF52DE;">⏱</div>
+                    <div id="month-time" class="stat-value">0m</div>
+                    <div class="stat-label">tiempo total</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>🔔 Próximas actividades</h3>
+            <div id="upcoming-list"></div>
+        </div>
+        
+        <div class="card">
+            <h3>Desglose del mes</h3>
+            <div id="breakdown-list"></div>
+        </div>
+        
+        <div class="card">
+            <h3>Datos</h3>
+            <p class="info-text">Tus datos se guardan en este iPhone. Exporta de vez en cuando para tener un backup.</p>
+            <button id="btn-export" class="btn-secondary">Exportar datos</button>
+            <button id="btn-import" class="btn-secondary">Importar datos</button>
+            <input type="file" id="import-file" accept=".json" style="display:none;">
+        </div>
+    </div>
+    
+    <!-- Tab Bar -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-view="view-calendar">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Calendario</span>
+        </button>
+        <button class="tab-btn" data-view="view-stats">
+            <span class="tab-icon">📊</span>
+            <span class="tab-label">Estadísticas</span>
+        </button>
+    </nav>
+    
+    <!-- Modal: Registrar / Planificar -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <header class="modal-header">
+                <button id="btn-modal-cancel" class="btn-text">Cancelar</button>
+                <h3 id="modal-title">Nueva actividad</h3>
+                <button id="btn-modal-save" class="btn-text btn-primary-text">Guardar</button>
+            </header>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" id="modal-date-label"></label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Categoría</label>
+                    <div class="segmented">
+                        <button class="seg-btn active" data-category="gimnasio">Gimnasio</button>
+                        <button class="seg-btn" data-category="deporte">Deporte</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tipo de actividad</label>
+                    <div id="activity-list" class="activity-list"></div>
+                </div>
+                
+                <div id="time-section" class="form-group hidden">
+                    <label class="form-label">
+                        <input type="checkbox" id="has-time" checked>
+                        Hora específica
+                    </label>
+                    <input type="time" id="time-input" value="19:00">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Duración (minutos)</label>
+                    <div class="stepper">
+                        <button id="duration-minus" class="stepper-btn">−</button>
+                        <span id="duration-value">60</span>
+                        <button id="duration-plus" class="stepper-btn">+</button>
+                    </div>
+                </div>
+                
+                <div id="notification-info" class="info-box hidden">
+                    🔔 Recibirás un aviso a las 8:00 del día de la actividad
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
