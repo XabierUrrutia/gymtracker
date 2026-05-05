@@ -51,39 +51,80 @@ self.addEventListener('message', event => {
 });
 
 function scheduleNotification({ id, date, activity, time }) {
-    const targetDate = new Date(date);
-    targetDate.setHours(8, 0, 0, 0);
-    
+    const baseDate = new Date(date);
     const now = Date.now();
-    const delay = targetDate.getTime() - now;
-    
-    if (delay <= 0) return;
-    
+
+    // Notificación fija a las 8:00 AM del día
+    const target8 = new Date(baseDate);
+    target8.setHours(8, 0, 0, 0);
+    const delay8 = target8.getTime() - now;
+n    // Limpiar timers previos (si existían)
     if (scheduledNotifications.has(id)) {
-        clearTimeout(scheduledNotifications.get(id));
+        const prev = scheduledNotifications.get(id);
+        for (const t of prev) clearTimeout(t);
     }
-    
-    const timeoutId = setTimeout(() => {
-        const body = time
-            ? `A las ${time}, prepara las cosas 💪`
-            : 'No olvides preparar las cosas 💪';
-        
-        self.registration.showNotification(`Hoy tienes ${activity}`, {
-            body,
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            tag: id,
-            requireInteraction: false
-        });
-        scheduledNotifications.delete(id);
-    }, delay);
-    
-    scheduledNotifications.set(id, timeoutId);
+
+    const timeouts = [];
+
+    if (delay8 > 0) {
+        const t8 = setTimeout(() => {
+            const body = time
+                ? `A las ${time}, prepara las cosas 💪`
+                : 'No olvides preparar las cosas 💪';
+
+            self.registration.showNotification(`Hoy tienes ${activity}`, {
+                body,
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-192.png',
+                tag: id,
+                requireInteraction: false
+            });
+n            // Eliminar este timeout de la lista almacenada
+            const arr = scheduledNotifications.get(id) || [];
+            const idx = arr.indexOf(t8);
+            if (idx !== -1) arr.splice(idx, 1);
+            if (arr.length === 0) scheduledNotifications.delete(id);
+        }, delay8);
+        timeouts.push(t8);
+    }
+
+    // Si hay hora concreta del evento, programar recordatorio 1 hora antes
+    if (time) {
+        const parts = time.split(':');
+        const hh = parseInt(parts[0], 10);
+        const mm = parseInt(parts[1] || '0', 10);
+        const eventDate = new Date(baseDate);
+        eventDate.setHours(hh, mm, 0, 0);
+        const preEvent = new Date(eventDate.getTime() - 60 * 60 * 1000);
+        const delayPre = preEvent.getTime() - now;
+
+        if (delayPre > 0) {
+            const tPre = setTimeout(() => {
+                const body = `En 1 hora (${time}) tienes ${activity} · prepara las cosas 💪`;
+                self.registration.showNotification(`Recordatorio: ${activity} en 1 hora`, {
+                    body,
+                    icon: '/icons/icon-192.png',
+                    badge: '/icons/icon-192.png',
+                    tag: id + '-pre',
+                    requireInteraction: false
+                });
+
+                const arr = scheduledNotifications.get(id) || [];
+                const idx = arr.indexOf(tPre);
+                if (idx !== -1) arr.splice(idx, 1);
+                if (arr.length === 0) scheduledNotifications.delete(id);
+            }, delayPre);
+            timeouts.push(tPre);
+        }
+    }
+
+    if (timeouts.length > 0) scheduledNotifications.set(id, timeouts);
 }
 
 function cancelScheduledNotification(id) {
     if (scheduledNotifications.has(id)) {
-        clearTimeout(scheduledNotifications.get(id));
+        const arr = scheduledNotifications.get(id);
+        for (const t of arr) clearTimeout(t);
         scheduledNotifications.delete(id);
     }
 }
