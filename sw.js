@@ -140,3 +140,36 @@ self.addEventListener('notificationclick', event => {
         })
     );
 });
+
+// Manejo de push entrante (Web Push)
+self.addEventListener('push', event => {
+    const data = event.data ? event.data.json() : { title: 'GymTracker', body: 'Tienes un recordatorio' };
+    event.waitUntil(
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: data.tag || undefined
+        })
+    );
+});
+
+// Re-suscribir si la suscripción caduca/expira
+self.addEventListener('pushsubscriptionchange', event => {
+    event.waitUntil(
+        (async () => {
+            try {
+                // Intentar re-suscribir usando las opciones previas
+                const options = event.oldSubscription && event.oldSubscription.options ? event.oldSubscription.options : { userVisibleOnly: true };
+                const newSub = await self.registration.pushManager.subscribe(options);
+                // Informar a la página cliente para que la guarde en el servidor
+                const clientsList = await self.clients.matchAll({ includeUncontrolled: true });
+                for (const c of clientsList) {
+                    c.postMessage({ type: 'new-subscription', subscription: newSub.toJSON() });
+                }
+            } catch (e) {
+                // Silenciar errores de resuscripción
+            }
+        })()
+    );
+});

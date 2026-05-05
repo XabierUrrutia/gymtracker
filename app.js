@@ -230,6 +230,19 @@ async function setupNotifications() {
     try {
         const reg = await navigator.serviceWorker.register('/sw.js');
         debugLog('SW registrado: ' + (reg.active ? 'activo' : 'instalando'));
+
+        // Escuchar mensajes desde el Service Worker (p ej. re-subscription)
+        navigator.serviceWorker.addEventListener('message', event => {
+            const data = event.data;
+            if (data?.type === 'new-subscription' && data.subscription) {
+                sendSubscriptionToServer(data.subscription).catch(e => debugLog('Error guardando sub: ' + (e.message || e)));
+            }
+        });
+
+        // Si ya hay permiso, intentar suscribir al Push
+        if (Notification.permission === 'granted') {
+            await subscribeForPush();
+        }
     } catch (err) {
         debugLog('Error SW: ' + err.message);
     }
@@ -341,6 +354,53 @@ function updateNotifUI() {
         statusEl.innerHTML = '⏸ <strong>Sin activar</strong>. Pulsa el botón para recibir avisos de tus actividades.';
         enableBtn.classList.remove('hidden');
         testBtn.classList.add('hidden');
+    }
+}
+
+// ===== Web Push helpers =====
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const b64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const raw = atob(b64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function sendSubscriptionToServer(subscription) {
+    try {
+        await fetch('/.netlify/functions/save-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription, user_code: Storage.getUserCode() })
+        });
+    } catch (err) { debugLog('Error enviando sub al servidor: ' + (err.message || err)); }
+}
+
+async function subscribeForPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        debugLog('Push API no soportada');
+        return;
+    }
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) {
+            debugLog('Ya suscrito a Push');
+            await sendSubscriptionToServer(existing.toJSON());
+            return existing;
+        }
+        if (typeof VAPID_PUBLIC_KEY === 'undefined' || !VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.includes('REPLACE')) {
+            debugLog('No hay VAPID_PUBLIC_KEY válido en config.js. Añádelo o crea las claves en el servidor.');
+            return;
+        }
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        await sendSubscriptionToServer(sub.toJSON());
+        debugLog('Suscripción Push almacenada');
+        return sub;
+    } catch (err) {
+        debugLog('subscribeForPush error: ' + (err.message || err));
     }
 }
 

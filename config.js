@@ -11,3 +11,6 @@ const SUPABASE_CONFIG = {
     // Tu clave anon public (pégala entre las comillas)
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtZHVyem5qbm1qdWRrdXp1YnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTQ1ODcsImV4cCI6MjA5MzQ5MDU4N30.jE2QqcsJxko_Hcu1y-WwWhkO2AY1fg2mhZVdzG3hJco'
 };
+
+// Clave pública VAPID para Web Push (pon aquí tu clave pública, puedes dejar el placeholder y generarla en el servidor)
+const VAPID_PUBLIC_KEY = 'REPLACE_WITH_VAPID_PUBLIC_KEY';
