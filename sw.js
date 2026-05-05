@@ -58,7 +58,7 @@ function scheduleNotification({ id, date, activity, time }) {
     const target8 = new Date(baseDate);
     target8.setHours(8, 0, 0, 0);
     const delay8 = target8.getTime() - now;
-n    // Limpiar timers previos (si existían)
+    // Limpiar timers previos (si existían)
     if (scheduledNotifications.has(id)) {
         const prev = scheduledNotifications.get(id);
         for (const t of prev) clearTimeout(t);
@@ -79,7 +79,7 @@ function scheduleNotification({ id, date, activity, time }) {
                 tag: id,
                 requireInteraction: false
             });
-n            // Eliminar este timeout de la lista almacenada
+            // Eliminar este timeout de la lista almacenada
             const arr = scheduledNotifications.get(id) || [];
             const idx = arr.indexOf(t8);
             if (idx !== -1) arr.splice(idx, 1);
