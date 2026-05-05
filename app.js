@@ -222,15 +222,125 @@ function runLocalMaintenance() {
 // Notificaciones (igual que antes, vía Service Worker)
 // ============================================
 async function setupNotifications() {
-    if (!('serviceWorker' in navigator)) return;
+    if (!('serviceWorker' in navigator)) {
+        debugLog('SW no soportado');
+        return;
+    }
     
     try {
-        await navigator.serviceWorker.register('/sw.js');
-        if ('Notification' in window && Notification.permission === 'default') {
-            await Notification.requestPermission();
-        }
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        debugLog('SW registrado: ' + (reg.active ? 'activo' : 'instalando'));
     } catch (err) {
-        console.error('Error SW:', err);
+        debugLog('Error SW: ' + err.message);
+    }
+}
+
+// Función de debug que muestra mensajes en pantalla (en la tarjeta de notificaciones)
+function debugLog(msg) {
+    console.log('[GymTracker]', msg);
+    const el = document.getElementById('notif-debug');
+    if (el) {
+        const timestamp = new Date().toLocaleTimeString();
+        el.textContent = `[${timestamp}] ${msg}`;
+    }
+}
+
+// Pide permiso de notificaciones (debe llamarse desde un click del usuario)
+async function requestNotifPermission() {
+    debugLog('Pidiendo permiso...');
+    
+    if (!('Notification' in window)) {
+        debugLog('❌ Notification API no soportada');
+        alert('Tu navegador no soporta notificaciones');
+        return;
+    }
+    
+    debugLog('Estado actual: ' + Notification.permission);
+    
+    if (Notification.permission === 'granted') {
+        debugLog('✅ Ya están concedidas');
+        updateNotifUI();
+        return;
+    }
+    
+    if (Notification.permission === 'denied') {
+        debugLog('❌ Bloqueadas por el sistema');
+        alert('Las notificaciones están bloqueadas. Ve a Ajustes → Notificaciones → GymTracker para activarlas. Si no aparece allí, hay que reinstalar la app desde Safari.');
+        return;
+    }
+    
+    try {
+        const result = await Notification.requestPermission();
+        debugLog('Resultado: ' + result);
+        
+        if (result === 'granted') {
+            // Mostrar notificación de confirmación inmediata
+            const reg = await navigator.serviceWorker.ready;
+            await reg.showNotification('¡Notificaciones activadas! 🎉', {
+                body: 'A partir de ahora recibirás avisos de tus actividades planificadas',
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-192.png'
+            });
+            debugLog('✅ Notificación de prueba enviada');
+        }
+        
+        updateNotifUI();
+    } catch (err) {
+        debugLog('Error: ' + err.message);
+    }
+}
+
+// Lanza una notificación de prueba inmediata
+async function testNotification() {
+    debugLog('Test de notificación...');
+    
+    if (Notification.permission !== 'granted') {
+        debugLog('Sin permiso, pidiendo...');
+        await requestNotifPermission();
+        return;
+    }
+    
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification('Prueba de GymTracker 💪', {
+            body: 'Si ves esto, las notificaciones funcionan perfectamente',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png'
+        });
+        debugLog('✅ Notificación enviada');
+    } catch (err) {
+        debugLog('Error: ' + err.message);
+    }
+}
+
+// Actualiza la UI de la tarjeta de notificaciones según el estado
+function updateNotifUI() {
+    const statusEl = document.getElementById('notif-status');
+    const enableBtn = document.getElementById('btn-enable-notifs');
+    const testBtn = document.getElementById('btn-test-notif');
+    
+    if (!statusEl) return;
+    
+    if (!('Notification' in window)) {
+        statusEl.textContent = '❌ Tu navegador no soporta notificaciones';
+        enableBtn.classList.add('hidden');
+        return;
+    }
+    
+    const permission = Notification.permission;
+    
+    if (permission === 'granted') {
+        statusEl.innerHTML = '✅ <strong>Activas</strong>. Recibirás avisos a las 8:00 AM de tus actividades planificadas.';
+        enableBtn.classList.add('hidden');
+        testBtn.classList.remove('hidden');
+    } else if (permission === 'denied') {
+        statusEl.innerHTML = '❌ <strong>Bloqueadas</strong>. Ve a Ajustes → Notificaciones → GymTracker para activarlas.';
+        enableBtn.classList.add('hidden');
+        testBtn.classList.add('hidden');
+    } else {
+        statusEl.innerHTML = '⏸ <strong>Sin activar</strong>. Pulsa el botón para recibir avisos de tus actividades.';
+        enableBtn.classList.remove('hidden');
+        testBtn.classList.add('hidden');
     }
 }
 
@@ -1052,7 +1162,10 @@ function init() {
             document.querySelectorAll('#view-calendar, #view-stats').forEach(v => v.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById(btn.dataset.view).classList.add('active');
-            if (btn.dataset.view === 'view-stats') renderStats();
+            if (btn.dataset.view === 'view-stats') {
+                renderStats();
+                updateNotifUI();
+            }
         });
     });
     
@@ -1094,6 +1207,13 @@ function init() {
     document.getElementById('btn-force-sync').addEventListener('click', () => {
         fullSync();
     });
+    
+    // Botones de notificaciones
+    document.getElementById('btn-enable-notifs').addEventListener('click', requestNotifPermission);
+    document.getElementById('btn-test-notif').addEventListener('click', testNotification);
+    
+    // Actualizar UI de notificaciones cuando entras en estadísticas
+    const originalTabHandler = document.querySelectorAll('.tab-btn');
     
     // Logout
     document.getElementById('btn-logout').addEventListener('click', logout);

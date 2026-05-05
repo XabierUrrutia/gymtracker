@@ -2,7 +2,7 @@
 // - Permite que la app funcione offline
 // - Gestiona las notificaciones programadas
 
-const CACHE_NAME = 'gymtracker-v2';
+const CACHE_NAME = 'gymtracker-v3';
 const FILES = [
     '/',
     '/index.html',
@@ -14,7 +14,6 @@ const FILES = [
     '/icons/icon-512.png'
 ];
 
-// Instalación: cachear archivos para uso offline
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))
@@ -22,7 +21,6 @@ self.addEventListener('install', event => {
     );
 });
 
-// Activación: limpiar caches antiguas
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(names => Promise.all(
@@ -31,7 +29,6 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch: servir desde cache si está disponible
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     event.respondWith(
@@ -40,8 +37,6 @@ self.addEventListener('fetch', event => {
 });
 
 // ----- Gestión de notificaciones programadas -----
-// Las almacenamos en el SW para poder programarlas con setTimeout
-
 const scheduledNotifications = new Map();
 
 self.addEventListener('message', event => {
@@ -56,22 +51,18 @@ self.addEventListener('message', event => {
 });
 
 function scheduleNotification({ id, date, activity, time }) {
-    // Calcular fecha de disparo: 8:00 AM del día indicado
     const targetDate = new Date(date);
     targetDate.setHours(8, 0, 0, 0);
     
     const now = Date.now();
     const delay = targetDate.getTime() - now;
     
-    // Si ya pasó la hora, no programar
     if (delay <= 0) return;
     
-    // Cancelar si ya había una programada con ese ID
     if (scheduledNotifications.has(id)) {
         clearTimeout(scheduledNotifications.get(id));
     }
     
-    // Programar (límite práctico: setTimeout funciona hasta ~24 días)
     const timeoutId = setTimeout(() => {
         const body = time
             ? `A las ${time}, prepara las cosas 💪`
@@ -88,7 +79,6 @@ function scheduleNotification({ id, date, activity, time }) {
     }, delay);
     
     scheduledNotifications.set(id, timeoutId);
-    console.log(`Notificación programada para ${targetDate.toLocaleString()}`);
 }
 
 function cancelScheduledNotification(id) {
@@ -98,7 +88,6 @@ function cancelScheduledNotification(id) {
     }
 }
 
-// Al hacer click en una notificación, abrir/enfocar la app
 self.addEventListener('notificationclick', event => {
     event.notification.close();
     event.waitUntil(

@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GymTracker">
     <meta name="theme-color" content="#FF6B35">
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="/styles.css">
     
     <title>GymTracker</title>
 </head>
@@ -92,6 +96,15 @@
                     <div class="stat-label">tiempo total</div>
                 </div>
             </div>
+        </div>
+        
+        <!-- TARJETA NUEVA: Notificaciones -->
+        <div class="card">
+            <h3>🔔 Notificaciones</h3>
+            <p class="info-text" id="notif-status">Comprobando estado...</p>
+            <button id="btn-enable-notifs" class="btn-secondary">Activar notificaciones</button>
+            <button id="btn-test-notif" class="btn-secondary hidden">Probar notificación ahora</button>
+            <p class="info-text" id="notif-debug" style="font-family: monospace; font-size: 11px; margin-top: 8px;"></p>
         </div>
         
         <div class="card">
@@ -184,7 +197,7 @@
         </div>
     </div>
     
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+    <script src="/config.js"></script>
+    <script src="/app.js"></script>
 </body>
 </html>
