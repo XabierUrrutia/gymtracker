@@ -13,4 +13,4 @@ const SUPABASE_CONFIG = {
 };
 
 // Clave pública VAPID para Web Push (pon aquí tu clave pública, puedes dejar el placeholder y generarla en el servidor)
-const VAPID_PUBLIC_KEY = 'REPLACE_WITH_VAPID_PUBLIC_KEY';
+const VAPID_PUBLIC_KEY = 'BEuBSMwg34Fa_NouR0707DnpRHLMEX6aNzUal5guYctE4R_DwTl34FnnYKv4YUUatyEcsjt1s35ZGcmwitoUuPY';
