@@ -315,13 +315,48 @@ async function requestNotifPermission() {
 // Lanza una notificación de prueba inmediata
 async function testNotification() {
     debugLog('Test de notificación...');
-    
+
     if (Notification.permission !== 'granted') {
         debugLog('Sin permiso, pidiendo...');
         await requestNotifPermission();
         return;
     }
-    
+
+    // Diagnóstico de push
+    const hasSW = 'serviceWorker' in navigator;
+    const hasPush = 'PushManager' in window;
+    let subInfo = 'sin suscripción';
+    let saveResult = '';
+
+    if (hasSW && hasPush) {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) {
+                subInfo = 'suscripción existente';
+                await sendSubscriptionToServer(existing.toJSON());
+                saveResult = ' → guardada en Supabase';
+            } else {
+                subInfo = 'sin suscripción, creando...';
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+                subInfo = 'nueva suscripción creada';
+                await sendSubscriptionToServer(sub.toJSON());
+                saveResult = ' → guardada en Supabase';
+            }
+        } catch (e) {
+            subInfo = 'error: ' + e.message;
+        }
+    }
+
+    alert(
+        `SW: ${hasSW ? '✅' : '❌'}\n` +
+        `PushManager: ${hasPush ? '✅' : '❌ (iOS < 16.4 o no instalada como PWA)'}\n` +
+        `Push: ${subInfo}${saveResult}`
+    );
+
     try {
         const reg = await navigator.serviceWorker.ready;
         await reg.showNotification('Prueba de GymTracker 💪', {
@@ -329,7 +364,7 @@ async function testNotification() {
             icon: '/icons/icon-192.png',
             badge: '/icons/icon-192.png'
         });
-        debugLog('✅ Notificación enviada');
+        debugLog('✅ Notificación de prueba enviada');
     } catch (err) {
         debugLog('Error: ' + err.message);
     }
