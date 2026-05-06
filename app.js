@@ -376,12 +376,25 @@ function urlBase64ToUint8Array(base64String) {
 
 async function sendSubscriptionToServer(subscription) {
     try {
-        await fetch('/.netlify/functions/save-subscription', {
+        const res = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/push_subscriptions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription, user_code: Storage.getUserCode() })
+            headers: {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates,return=representation'
+            },
+            body: JSON.stringify({
+                id: subscription.endpoint,
+                user_code: Storage.getUserCode(),
+                subscription: subscription
+            })
         });
-    } catch (err) { debugLog('Error enviando sub al servidor: ' + (err.message || err)); }
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+        debugLog('✅ Suscripción push guardada en Supabase');
+    } catch (err) {
+        debugLog('Error guardando suscripción: ' + (err.message || err));
+    }
 }
 
 async function subscribeForPush() {
