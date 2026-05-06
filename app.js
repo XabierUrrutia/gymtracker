@@ -124,6 +124,15 @@ const Supa = {
         if (!res.ok) throw new Error(`Error ${res.status} en DELETE ${table}`);
         return true;
     },
+
+    async deleteWhere(table, field, value) {
+        const res = await fetch(`${this.url}/rest/v1/${table}?${field}=eq.${encodeURIComponent(value)}`, {
+            method: 'DELETE',
+            headers: this.headers()
+        });
+        if (!res.ok) throw new Error(`Error ${res.status} en DELETE ${table} where ${field}=${value}`);
+        return true;
+    },
     
     // Test de conexión: intenta leer 0 filas para ver si la auth y RLS funcionan
     async testConnection() {
@@ -427,6 +436,58 @@ async function cancelNotification(id) {
     } catch {}
 }
 
+// Guarda en Supabase los momentos exactos en que el servidor debe enviar push
+async function saveNotificationSchedules(planned) {
+    if (!state.online) return;
+    const userCode = Storage.getUserCode();
+    if (!userCode) return;
+
+    const [y, m, d] = planned.date.split('-').map(Number);
+    const actName = ACTIVITIES[planned.activity]?.name || planned.activity;
+    const now = new Date();
+    const rows = [];
+
+    const at8am = new Date(y, m - 1, d, 8, 0, 0, 0);
+    if (at8am > now) {
+        rows.push({
+            user_code: userCode,
+            planned_id: planned.id,
+            activity: planned.activity,
+            notify_at: at8am.toISOString(),
+            message_title: `Hoy tienes ${actName}`,
+            message_body: planned.hasTime
+                ? `A las ${planned.time}, prepara las cosas 💪`
+                : 'No olvides preparar las cosas 💪'
+        });
+    }
+
+    if (planned.hasTime && planned.time) {
+        const [hh, mm] = planned.time.split(':').map(Number);
+        const notifyBefore = new Date(new Date(y, m - 1, d, hh, mm, 0, 0).getTime() - 60 * 60 * 1000);
+        if (notifyBefore > now) {
+            rows.push({
+                user_code: userCode,
+                planned_id: planned.id,
+                activity: planned.activity,
+                notify_at: notifyBefore.toISOString(),
+                message_title: `Recordatorio: ${actName} en 1 hora`,
+                message_body: `En 1 hora (${planned.time}) tienes ${actName} · prepara las cosas 💪`
+            });
+        }
+    }
+
+    for (const row of rows) {
+        try { await Supa.insert('notification_schedules', row); }
+        catch (e) { console.error('Error guardando notification schedule:', e); }
+    }
+}
+
+async function deleteNotificationSchedules(plannedId) {
+    if (!state.online || !plannedId) return;
+    try { await Supa.deleteWhere('notification_schedules', 'planned_id', plannedId); }
+    catch (e) { console.error('Error borrando notification schedules:', e); }
+}
+
 // ============================================
 // SINCRONIZACIÓN con Supabase
 // ============================================
@@ -610,12 +671,14 @@ async function addPlanned(planned) {
     }
     
     scheduleNotification(planned);
+    saveNotificationSchedules(planned);
 }
 
 async function deletePlanned(id, notificationId) {
     const all = Storage.getPlanned().filter(p => p.id !== id);
     Storage.savePlanned(all);
     cancelNotification(notificationId);
+    deleteNotificationSchedules(id);
     
     if (state.online) {
         try { await Supa.deleteById('planned_activities', id); }

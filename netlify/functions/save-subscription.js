@@ -24,13 +24,12 @@ exports.handler = async function(event) {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'Prefer': 'resolution=merge-duplicates,return=representation'
       },
       body: JSON.stringify({
-        id: subscription.endpoint, // usar endpoint como id (o genera uuid en la BD)
+        id: subscription.endpoint,
         user_code: user_code,
-        subscription: subscription,
-        created_at: new Date().toISOString()
+        subscription: subscription
       })
     });
 
