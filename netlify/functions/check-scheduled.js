@@ -21,9 +21,9 @@ exports.handler = async function() {
 
   const headers = { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` };
 
-  // Find unsent notifications due in the past 2 hours (catch-up window for missed runs)
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+  console.log(`[check-scheduled] now=${now.toISOString()} window=${twoHoursAgo.toISOString()} → ${now.toISOString()}`);
 
   const notifsRes = await fetch(
     `${supabaseUrl}/rest/v1/notification_schedules` +
@@ -34,11 +34,17 @@ exports.handler = async function() {
     { headers }
   );
 
+  console.log(`[check-scheduled] query status=${notifsRes.status}`);
+
   if (!notifsRes.ok) {
-    return { statusCode: notifsRes.status, body: await notifsRes.text() };
+    const err = await notifsRes.text();
+    console.log(`[check-scheduled] query error: ${err}`);
+    return { statusCode: notifsRes.status, body: err };
   }
 
-  const notifications = await notifsRes.ok ? await notifsRes.json() : [];
+  const notifications = await notifsRes.json();
+  console.log(`[check-scheduled] found ${notifications.length} pending notifications`);
+
   if (notifications.length === 0) {
     return { statusCode: 200, body: JSON.stringify({ processed: 0 }) };
   }
@@ -58,6 +64,7 @@ exports.handler = async function() {
     }
 
     const subs = await subRes.json();
+    console.log(`[check-scheduled] notif=${notif.id} user=${notif.user_code} subs=${subs.length}`);
     let sentCount = 0;
 
     for (const s of subs) {
@@ -67,8 +74,9 @@ exports.handler = async function() {
           JSON.stringify({ title: notif.message_title, body: notif.message_body })
         );
         sentCount++;
+        console.log(`[check-scheduled] push sent to sub=${s.id}`);
       } catch (e) {
-        // Subscription expired or invalid — remove it
+        console.log(`[check-scheduled] push error sub=${s.id}: ${e.message} status=${e.statusCode}`);
         if (e.statusCode === 410 || e.statusCode === 404) {
           await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${encodeURIComponent(s.id)}`, {
             method: 'DELETE',
